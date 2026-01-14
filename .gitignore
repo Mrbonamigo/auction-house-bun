@@ -1,0 +1,15 @@
+# Dependencies
+node_modules
+.bun
+
+# Database (Local only!)
+*.sqlite
+*.sqlite-journal
+
+# Build Artifacts (Generated files)
+public/main.js
+public/styles.css
+
+# Environment variables (Security)
+.env
+.DS_Store

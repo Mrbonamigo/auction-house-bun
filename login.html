@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Auction App</title>
+</head>
+<body>
+<h1>Sign in to the Auction</h1>
+
+<button id="google-btn">Sign in with Google 🇬</button>
+
+<script>
+    const btn = document.getElementById("google-btn");
+
+    btn.onclick = async () => {
+        // We must send a POST request to start the social login flow
+        const data = await fetch("/api/auth/sign-in/social", {
+            method: "POST",
+            body: JSON.stringify({
+                provider: "google"
+            }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+
+        const json = await data.json();
+
+        // If successful, redirect the user to Google's page
+        if (json.url) {
+            window.location.href = json.url;
+        } else {
+            alert("Error starting login!");
+            console.error(json);
+        }
+    };
+</script>
+</body>
+</html>

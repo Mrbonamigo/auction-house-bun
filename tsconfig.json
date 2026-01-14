@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    /* Basic Options */
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+
+    /* Environment Support 🌐 */
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+
+    /* React Support ⚛️ */
+    "jsx": "react-jsx",
+
+    /* Strictness & Safety */
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "isolatedModules": true
+  },
+  "include": ["src"]
+}
