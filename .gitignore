@@ -6,10 +6,13 @@ node_modules
 *.sqlite
 *.sqlite-journal
 
-# Build Artifacts (Generated files)
+# Build Artifacts
 public/main.js
 public/styles.css
 
-# Environment variables (Security)
+# Environment variables
 .env
 .DS_Store
+
+# 👇 NOVO: Ignorar imagens enviadas pelos usuários
+public/uploads/*

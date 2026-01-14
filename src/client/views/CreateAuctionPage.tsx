@@ -4,45 +4,57 @@ import { useMutation } from "@tanstack/react-query";
 
 export default function CreateAuctionPage() {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({
-        title: "",
-        description: "",
-        startPrice: "",
-        imageUrl: "",
-        durationDays: "3" // Default to 3 days
-    });
 
-    // Mutation to send data to server
+    // Form States
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [startPrice, setStartPrice] = useState("");
+    const [durationDays, setDurationDays] = useState("3");
+
+    // 👇 NEW: Store the actual File object
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    // 👇 NEW: Temporary URL for preview
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
     const createMutation = useMutation({
-        mutationFn: async (data: any) => {
+        mutationFn: async () => {
+            if (!imageFile) throw new Error("Please select an image");
+
+            // 1. Build FormData object (Required for file uploads)
+            const formData = new FormData();
+            formData.append("title", title);
+            formData.append("description", description);
+            formData.append("startPrice", startPrice);
+            formData.append("durationDays", durationDays);
+            formData.append("image", imageFile); // Attach binary file
+
+            // 2. Send as Multipart Request
             const res = await fetch("/api/products", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
+                // Note: Do NOT set Content-Type header manually for FormData.
+                // The browser sets it automatically with the correct boundary.
+                body: formData,
             });
+
             if (!res.ok) throw new Error(await res.text());
             return res.json();
         },
         onSuccess: (data) => {
-            // Redirect to the new product page immediately
             navigate(`/product/${data.id}`);
         },
         onError: (error) => {
-            alert("Error creating auction: " + error.message);
+            alert("Error: " + error.message);
         }
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        createMutation.mutate({
-            ...formData,
-            startPrice: parseFloat(formData.startPrice),
-            durationDays: parseInt(formData.durationDays)
-        });
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Handle File Selection
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setImageFile(file);
+            // Generate a local preview URL
+            setPreviewUrl(URL.createObjectURL(file));
+        }
     };
 
     return (
@@ -57,39 +69,53 @@ export default function CreateAuctionPage() {
                 <h1 className="text-3xl font-bold mb-2">Sell an Item</h1>
                 <p className="text-neutral-400 mb-8">List your luxury item for auction.</p>
 
-                <form onSubmit={handleSubmit} className="space-y-6 bg-neutral-900 p-8 rounded-xl border border-neutral-800 shadow-xl">
+                <div className="space-y-6 bg-neutral-900 p-8 rounded-xl border border-neutral-800 shadow-xl">
 
-                    {/* Title */}
+                    {/* Title Input */}
                     <div>
                         <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">Item Title</label>
                         <input
-                            name="title" required
-                            value={formData.title} onChange={handleChange}
-                            className="w-full bg-neutral-950 border border-neutral-800 rounded p-3 text-white focus:border-amber-600 outline-none transition-colors"
+                            value={title} onChange={(e) => setTitle(e.target.value)}
+                            className="w-full bg-neutral-950 border border-neutral-800 rounded p-3 text-white focus:border-amber-600 outline-none"
                             placeholder="e.g., Vintage Rolex Submariner"
                         />
                     </div>
 
-                    {/* Image URL */}
+                    {/* 📸 Image Upload Area */}
                     <div>
-                        <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">Image URL</label>
-                        <input
-                            name="imageUrl" required
-                            value={formData.imageUrl} onChange={handleChange}
-                            className="w-full bg-neutral-950 border border-neutral-800 rounded p-3 text-white focus:border-amber-600 outline-none transition-colors"
-                            placeholder="https://..."
-                        />
-                        <p className="text-[10px] text-neutral-600 mt-1">Paste a link from Unsplash or your image host.</p>
+                        <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">Item Photo</label>
+
+                        <div className="border-2 border-dashed border-neutral-800 rounded-xl p-6 text-center hover:border-amber-600/50 transition-colors relative bg-neutral-950 group">
+                            {/* Invisible Input covering the whole area */}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            />
+
+                            {previewUrl ? (
+                                <div className="relative">
+                                    <img src={previewUrl} alt="Preview" className="h-64 mx-auto rounded-lg object-contain shadow-lg" />
+                                    <p className="text-xs text-neutral-500 mt-2">Click to change photo</p>
+                                </div>
+                            ) : (
+                                <div className="text-neutral-500 py-8 group-hover:text-amber-500 transition-colors">
+                                    <p className="text-4xl mb-3">📷</p>
+                                    <p className="text-sm font-bold uppercase">Click or Drag photo here</p>
+                                    <p className="text-xs text-neutral-600 mt-1">Supports JPG, PNG, WEBP</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Description */}
+                    {/* Description Input */}
                     <div>
                         <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">Description</label>
                         <textarea
-                            name="description" required rows={4}
-                            value={formData.description} onChange={handleChange}
-                            className="w-full bg-neutral-950 border border-neutral-800 rounded p-3 text-white focus:border-amber-600 outline-none transition-colors"
-                            placeholder="Describe the condition, history, and details..."
+                            rows={4}
+                            value={description} onChange={(e) => setDescription(e.target.value)}
+                            className="w-full bg-neutral-950 border border-neutral-800 rounded p-3 text-white focus:border-amber-600 outline-none"
                         />
                     </div>
 
@@ -98,10 +124,9 @@ export default function CreateAuctionPage() {
                         <div>
                             <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">Start Price ($)</label>
                             <input
-                                type="number" name="startPrice" required min="1"
-                                value={formData.startPrice} onChange={handleChange}
-                                className="w-full bg-neutral-950 border border-neutral-800 rounded p-3 text-white focus:border-amber-600 outline-none transition-colors"
-                                placeholder="100.00"
+                                type="number" min="1"
+                                value={startPrice} onChange={(e) => setStartPrice(e.target.value)}
+                                className="w-full bg-neutral-950 border border-neutral-800 rounded p-3 text-white focus:border-amber-600 outline-none"
                             />
                         </div>
 
@@ -109,9 +134,8 @@ export default function CreateAuctionPage() {
                         <div>
                             <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">Duration</label>
                             <select
-                                name="durationDays"
-                                value={formData.durationDays} onChange={handleChange}
-                                className="w-full bg-neutral-950 border border-neutral-800 rounded p-3 text-white focus:border-amber-600 outline-none transition-colors"
+                                value={durationDays} onChange={(e) => setDurationDays(e.target.value)}
+                                className="w-full bg-neutral-950 border border-neutral-800 rounded p-3 text-white focus:border-amber-600 outline-none"
                             >
                                 <option value="1">1 Day</option>
                                 <option value="3">3 Days</option>
@@ -121,15 +145,16 @@ export default function CreateAuctionPage() {
                         </div>
                     </div>
 
+                    {/* Submit Button */}
                     <button
-                        type="submit"
+                        onClick={() => createMutation.mutate()}
                         disabled={createMutation.isPending}
                         className="w-full bg-amber-600 text-black font-bold uppercase tracking-wider py-4 rounded-lg hover:bg-amber-500 transition-colors mt-4"
                     >
-                        {createMutation.isPending ? "Creating Auction..." : "List Item for Auction"}
+                        {createMutation.isPending ? "Uploading..." : "List Item for Auction"}
                     </button>
 
-                </form>
+                </div>
             </div>
         </div>
     );
