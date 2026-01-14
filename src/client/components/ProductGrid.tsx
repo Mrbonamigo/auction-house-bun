@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom"; // 👈 IMPORTANT: Import Link to enable navigation
+import { Link } from "react-router-dom";
 
 // 1. Define Product Shape
 interface Product {
@@ -12,21 +12,33 @@ interface Product {
     endsAt: number;
 }
 
-// Fetcher function
-const fetchProducts = async (): Promise<Product[]> => {
-    const res = await fetch("/api/products");
+// 👇 NEW: Interface for props
+interface ProductGridProps {
+    search: string;
+    sort: string;
+}
+
+// Updated fetcher to handle keys
+const fetchProducts = async ({ queryKey }: any): Promise<Product[]> => {
+    // Extract search and sort from the Query Key
+    const [_, { search, sort }] = queryKey;
+
+    // Pass them to the API
+    const res = await fetch(`/api/products?q=${encodeURIComponent(search)}&sort=${sort}`);
     if (!res.ok) throw new Error("Failed to load auction items");
     return res.json();
 };
 
-export function ProductGrid() {
+export function ProductGrid({ search, sort }: ProductGridProps) {
     const { data: products, isLoading } = useQuery({
-        queryKey: ["products"],
+        // 👇 Key includes filters. If filters change, React Query re-fetches automatically.
+        queryKey: ["products", { search, sort }],
         queryFn: fetchProducts,
+        refetchInterval: 2000,
     });
 
     if (isLoading) return <div className="text-center text-neutral-500 py-10">Loading Collection...</div>;
-    if (!products || products.length === 0) return <div className="text-center text-neutral-500 py-10">The vault is empty.</div>;
+    if (!products || products.length === 0) return <div className="text-center text-neutral-500 py-10">No items found.</div>;
 
     // 2. The Grid Layout
     return (
@@ -34,7 +46,7 @@ export function ProductGrid() {
             {products.map((product) => (
                 <div key={product.id} className="group relative overflow-hidden rounded-xl bg-neutral-900 border border-neutral-800 hover:border-amber-600/50 transition-colors duration-300 shadow-lg">
 
-                    {/* 👇 LINK 1: Clickable Image */}
+                    {/* Link Image */}
                     <Link to={`/product/${product.id}`} className="block aspect-[4/3] overflow-hidden cursor-pointer">
                         <img
                             src={product.imageUrl}
@@ -44,7 +56,7 @@ export function ProductGrid() {
                     </Link>
 
                     <div className="p-5">
-                        {/* 👇 LINK 2: Clickable Title */}
+                        {/* Link Title */}
                         <Link to={`/product/${product.id}`} className="block">
                             <h3 className="text-lg font-bold text-white truncate mb-1 hover:text-amber-500 transition-colors cursor-pointer">
                                 {product.title}
@@ -61,8 +73,7 @@ export function ProductGrid() {
                                 </p>
                             </div>
 
-                            {/* 👇 LINK 3: Clickable "Bid Now" Button */}
-                            {/* Note: We use <Link> styled as a button, instead of <button> */}
+                            {/* Link Button */}
                             <Link
                                 to={`/product/${product.id}`}
                                 className="rounded bg-neutral-800 px-4 py-2 text-xs font-bold text-white uppercase tracking-wider hover:bg-amber-600 transition-colors cursor-pointer"

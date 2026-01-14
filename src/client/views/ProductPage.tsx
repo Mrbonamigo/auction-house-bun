@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// 👇 1. IMPORTANTE: Importar o Countdown
 import { Countdown } from "../components/Countdown";
 
+// 1. Interfaces & Fetchers
 interface Product {
     id: string;
     title: string;
@@ -46,6 +46,8 @@ export default function ProductPage() {
         queryKey: ["product", id],
         queryFn: () => fetchProduct(id!),
         enabled: !!id,
+        // 👇 NEW: Check for price updates every 2 seconds
+        refetchInterval: 2000,
     });
 
     React.useEffect(() => {
@@ -120,8 +122,6 @@ export default function ProductPage() {
                                         ${displayPrice.toLocaleString()}
                                     </p>
                                 </div>
-
-                                {/* 👇 2. AQUI ESTÁ A MUDANÇA: Usamos o Countdown em vez do texto fixo */}
                                 <div className="text-right">
                                     <p className="text-xs text-neutral-500 mb-1">Time Remaining</p>
                                     <Countdown
